@@ -68,7 +68,7 @@ function App() {
   const handleCopy = () => {
     if (!code) return;
 
-    const message = `Ваш код получения: #${code}\nПожалуйста, озвучьте его при получении.`;
+    const message = `Ваш код получения: #${code}\nОн нужен, чтобы избежать путаницы и получить свой заказ быстро.`;
 
     navigator.clipboard.writeText(message).then(() => {
       setCopied(true);
