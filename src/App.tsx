@@ -1,22 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CodeDisplay } from './components/CodeDisplay';
 import { GenerateButton } from './components/GenerateButton';
 import { CopyButton } from './components/CopyButton';
+import { CodeHistory } from './components/CodeHistory';
 import { generateCode } from './utils/generateCode';
 
 function App() {
-  const [code, setCode] = useState('');
+  // Инициализация состояний сразу из localStorage (один раз при создании)
+  const [code, setCode] = useState(() => {
+    try {
+      return localStorage.getItem('currentCode') || '';
+    } catch {
+      return '';
+    }
+  });
+
   const [copied, setCopied] = useState(false);
 
+  const [codeHistory, setCodeHistory] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('codeHistory');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // intentionally left blank
+    }
+    return [];
+  });
+
+  const [copiedHistory, setCopiedHistory] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('copiedHistory');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // intentionally left blank
+    }
+    return [];
+  });
+
+  // Сохраняем данные в localStorage при изменениях
+  useEffect(() => {
+    localStorage.setItem('currentCode', code);
+  }, [code]);
+
+  useEffect(() => {
+    localStorage.setItem('codeHistory', JSON.stringify(codeHistory));
+  }, [codeHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('copiedHistory', JSON.stringify(copiedHistory));
+  }, [copiedHistory]);
+
   const handleGenerate = () => {
-    setCode(generateCode());
+    const newCode = generateCode();
+    setCode(newCode);
     setCopied(false);
+
+    const updatedHistory = [newCode, ...codeHistory.filter((c) => c && c !== newCode)].slice(0, 3);
+    setCodeHistory(updatedHistory);
   };
 
   const handleCopy = () => {
+    if (!code) return;
+
     const message = `Ваш код получения: #${code}\nПожалуйста, озвучьте его при получении.`;
+
     navigator.clipboard.writeText(message).then(() => {
       setCopied(true);
+
+      setCopiedHistory((prev) => {
+        const updated = [code, ...prev.filter((c) => c && c !== code)].slice(0, 3);
+        return updated;
+      });
     });
   };
 
@@ -28,6 +88,7 @@ function App() {
         </h1>
 
         <CodeDisplay code={code} />
+        <CodeHistory codes={copiedHistory} />
 
         <div className="flex flex-col sm:flex-row gap-4 w-full">
           <GenerateButton onGenerate={handleGenerate} />
